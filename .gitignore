@@ -1,0 +1,5 @@
+data/household_power_consumption.txt
+.idea/
+*.iml
+__pycache__/
+*.pyc
