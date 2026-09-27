@@ -10,7 +10,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from xgboost import XGBRegressor
  
  
-DATA_FILE = "hourly_clean.csv"
+DATA_FILE = "data/hourly_clean.csv"
  
 data = pd.read_csv(DATA_FILE)
  
