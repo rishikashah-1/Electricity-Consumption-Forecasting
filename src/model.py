@@ -92,3 +92,33 @@ print("Random Forest R2:", rf_r2)
 
 from xgboost import XGBRegressor
 
+xgb_model = XGBRegressor(
+    n_estimators=300,
+    learning_rate=0.05,
+    random_state=42,
+    subsample=0.8,
+    max_depth=6,
+    
+    n_jobs=-1
+)
+xgb_model.fit(X_train, y_train)
+xgb_pred = xgb_model.predict(X_test)
+print(xgb_pred[:5])
+xgb_mae = mean_absolute_error(y_test, xgb_pred)
+xgb_rmse = mean_squared_error(y_test, xgb_pred) ** 0.5
+xgb_r2 = r2_score(y_test, xgb_pred)
+
+print("XGBoost MAE:", xgb_mae)
+print("XGBoost RMSE:", xgb_rmse)
+print("XGBoost R2:", xgb_r2)
+results = {
+    "Baseline": [baseline_mae, baseline_rmse, baseline_r2],
+    "Linear Regression": [linear_mae, linear_rmse, linear_r2],
+    "Random Forest": [rf_mae, rf_rmse, rf_r2],
+    "XGBoost": [xgb_mae, xgb_rmse, xgb_r2]
+}
+
+print(results)
+
+
+
