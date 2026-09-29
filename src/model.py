@@ -1,4 +1,5 @@
 import pandas as pd
+import joblib
 
 df = pd.read_csv("data/features.csv")
 
@@ -98,7 +99,7 @@ xgb_model = XGBRegressor(
     random_state=42,
     subsample=0.8,
     max_depth=6,
-    
+    gamma=0.1,
     n_jobs=-1
 )
 xgb_model.fit(X_train, y_train)
@@ -119,6 +120,8 @@ results = {
 }
 
 print(results)
+
+joblib.dump(xgb_model, "models/xgb_model.pkl")
 
 
 
