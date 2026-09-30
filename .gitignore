@@ -3,3 +3,6 @@ data/household_power_consumption.txt
 *.iml
 __pycache__/
 *.pyc
+.venv2/
+data/features.csv
+models/
