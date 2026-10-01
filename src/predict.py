@@ -84,3 +84,185 @@ forecast_df = pd.DataFrame(future_predictions)
 forecast_df.to_csv("data/forecast_24h.csv", index=False)
 
 print("\n24-hour forecast saved successfully.")
+
+explainer = shap.TreeExplainer(model)
+
+shap_values = explainer(X_latest)
+
+shap_importance = pd.DataFrame({
+    "Feature": X_latest.columns,
+    "SHAP_Value": shap_values.values[0]
+})
+
+shap_importance["Absolute_SHAP"] = (
+    shap_importance["SHAP_Value"].abs()
+)
+
+shap_importance = shap_importance.sort_values(
+    "Absolute_SHAP",
+    ascending=False
+)
+
+print("\nTop features influencing this prediction:")
+
+print(
+    shap_importance[
+        ["Feature", "SHAP_Value"]
+    ].head(10)
+)
+
+# Save SHAP explanation
+shap_importance[
+    ["Feature", "SHAP_Value"]
+].to_csv(
+    "data/shap_explanation.csv",
+    index=False
+)
+
+# -----------------------------
+# 5. Prepare history
+# -----------------------------
+
+history = df["Global_active_power"].tolist()
+
+future_predictions = []
+
+# -----------------------------
+# 6. Recursive 24-hour forecast
+# -----------------------------
+
+for i in range(24):
+
+    future_time = next_hour + timedelta(hours=i)
+
+    future_row = {
+
+        # Latest known external measurements
+        "Global_reactive_power":
+            latest_data["Global_reactive_power"].iloc[0],
+
+        "Voltage":
+            latest_data["Voltage"].iloc[0],
+
+        "Global_intensity":
+            latest_data["Global_intensity"].iloc[0],
+
+        "Sub_metering_1":
+            latest_data["Sub_metering_1"].iloc[0],
+
+        "Sub_metering_2":
+            latest_data["Sub_metering_2"].iloc[0],
+
+        "Sub_metering_3":
+            latest_data["Sub_metering_3"].iloc[0],
+
+        # Lag features
+        "Lag_1": history[-1],
+        "Lag_24": history[-24],
+        "Lag_168": history[-168],
+        "Lag_2": history[-2],
+        "Lag_3": history[-3],
+        "Lag_48": history[-48],
+
+        # Rolling features
+        "Rolling_Mean_3":
+            sum(history[-3:]) / 3,
+
+        "Rolling_Mean_6":
+            sum(history[-6:]) / 6,
+
+        "Rolling_Mean_24":
+            sum(history[-24:]) / 24,
+
+        # Calendar features
+        "Hour": future_time.hour,
+
+        "Day_of_Week":
+            future_time.dayofweek,
+
+        "Month":
+            future_time.month,
+
+        "Is_Weekend":
+            int(future_time.dayofweek in [5, 6]),
+
+        # Cyclic features
+        "Hour_Sin":
+            np.sin(
+                2 * np.pi * future_time.hour / 24
+            ),
+
+        "Hour_Cos":
+            np.cos(
+                2 * np.pi * future_time.hour / 24
+            ),
+
+        "DOW_Sin":
+            np.sin(
+                2 * np.pi * future_time.dayofweek / 7
+            ),
+
+        "DOW_Cos":
+            np.cos(
+                2 * np.pi * future_time.dayofweek / 7
+            ),
+
+        # Difference features
+        "Diff_1":
+            history[-1] - history[-2],
+
+        "Diff_24":
+            history[-24] - history[-48]
+    }
+
+    future_X = pd.DataFrame(
+        [future_row]
+    )[feature_columns]
+
+    predicted_value = model.predict(
+        future_X
+    )[0]
+
+    # Important:
+    # predicted value becomes history
+    # for the next prediction
+    history.append(predicted_value)
+
+    future_predictions.append({
+        "Datetime": future_time,
+        "Predicted_Consumption": predicted_value
+    })
+
+# -----------------------------
+# 7. Save 24-hour forecast
+# -----------------------------
+
+forecast_df = pd.DataFrame(
+    future_predictions
+)
+
+forecast_df.to_csv(
+    "data/forecast_24h.csv",
+    index=False
+)
+
+# -----------------------------
+# 8. Display forecast
+# -----------------------------
+
+print("\nNext 24-hour forecast:")
+
+for row in future_predictions:
+
+    print(
+        row["Datetime"],
+        "->",
+        round(
+            row["Predicted_Consumption"],
+            3
+        ),
+        "kW"
+    )
+
+print("\n24-hour forecast saved successfully.")
+print("SHAP explanation saved successfully.")
